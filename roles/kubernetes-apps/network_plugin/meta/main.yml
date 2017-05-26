@@ -3,6 +3,9 @@ dependencies:
  - role: kubernetes-apps/network_plugin/canal
    when: kube_network_plugin == 'canal'
    tags: canal
+ - role: kubernetes-apps/network_plugin/contiv
+   when: kube_network_plugin == 'contiv'
+   tags: contiv
  - role: kubernetes-apps/network_plugin/weave
    when: kube_network_plugin == 'weave'
    tags: weave

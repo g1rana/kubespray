@@ -1,0 +1,131 @@
+- name: Contiv | Create contiv certs directory
+  file:
+    dest: "{{ contiv_cert_dir }}"
+    state: directory
+    mode: 0750
+    owner: root
+    group: root
+
+- name: Contiv | Link etcd certificates for contiv-etcd-proxy
+  file:
+    src: "{{ etcd_cert_dir }}/{{ item.s }}"
+    dest: "{{ contiv_cert_dir }}/{{ item.d }}"
+    state: hard
+    force: yes
+  with_items:
+    - {s: "ca.pem", d: "ca_cert.crt"}
+    - {s: "node-{{ inventory_hostname }}.pem", d: "proxy-cert.crt"}
+    - {s: "node-{{ inventory_hostname }}-key.pem", d: "proxy-key.pem"}
+
+- name: Contiv | Write contiv-etcd-proxy DaemonSet
+  template:
+    src: contiv-etcd-proxy.yml.j2
+    dest: "{{ kube_config_dir }}/contiv-etcd-proxy.yaml"
+
+- name: Contiv | Write contiv-netplugin DaemonSet
+  template:
+    src: contiv-netplugin.yml.j2
+    dest: "{{ kube_config_dir }}/contiv-netplugin.yaml"
+
+- name: Contiv | Write contiv-netmaster ReplicaSet
+  template:
+    src: contiv-netmaster.yml.j2
+    dest: "{{ kube_config_dir }}/contiv-netmaster.yaml"
+
+- name: Contiv | Write contiv-config ConfigMap
+  template:
+    src: contiv-config.yml.j2
+    dest: "{{ kube_config_dir }}/contiv-config.yaml"
+
+- name: Contiv | Write contiv ClusterRoleBinding
+  template:
+    src: "contiv-{{ item }}-clusterrolebinding.yml.j2"
+    dest: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrolebinding.yaml"
+  with_items:
+    - netmaster
+    - netplugin
+
+- name: Contiv | Write contiv ClusterRole
+  template:
+    src: "contiv-{{ item }}-clusterrole.yml.j2"
+    dest: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrole.yaml"
+  with_items:
+    - netmaster
+    - netplugin
+
+- name: Contiv | Write contiv ServiceAccount
+  template:
+    src: "contiv-{{ item }}-serviceaccount.yml.j2"
+    dest: "{{ kube_config_dir }}/contiv-{{ item }}-serviceaccount.yaml"
+  with_items:
+    - netmaster
+    - netplugin
+
+- name: Contiv | Write contiv-api-proxy DaemonSet
+  template:
+    src: contiv-api-proxy.yml.j2
+    dest: "{{ kube_config_dir }}/contiv-api-proxy.yaml"
+  when: "contiv_enable_api_proxy"
+
+- set_fact:
+    contiv_enable_api_proxy: "{{ contiv_enable_api_proxy }}"
+    contiv_fabric_mode: "{{ contiv_fabric_mode }}"
+    contiv_fwd_mode: "{{ contiv_fwd_mode }}"
+    contiv_netmaster_port: "{{ contiv_netmaster_port }}"
+    contiv_networks: "{{ contiv_networks }}"
+
+- name: Contiv | Create /var/contiv
+  file:
+    path: /var/contiv
+    state: directory
+
+- name: Contiv | Generate contiv-api-proxy certificates
+  script: generate-certificate.sh
+  args:
+    creates: /var/contiv/auth_proxy_key.pem
+  when: "contiv_enable_api_proxy and contiv_generate_certificate"
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  run_once: true
+
+- name: Contiv | Fetch the generated certificate
+  fetch:
+    src: "/var/contiv/{{ item }}"
+    dest: "/tmp/kargo-contiv-{{ item }}"
+    flat: yes
+  with_items:
+    - auth_proxy_key.pem
+    - auth_proxy_cert.pem
+  when: "contiv_enable_api_proxy and contiv_generate_certificate"
+  delegate_to: "{{ groups['kube-master'][0] }}"
+  run_once: true
+
+- name: Contiv | Copy the generated certificate on nodes
+  copy:
+    src: "/tmp/kargo-contiv-{{ item }}"
+    dest: "/var/contiv/{{ item }}"
+  with_items:
+    - auth_proxy_key.pem
+    - auth_proxy_cert.pem
+  when: "inventory_hostname != groups['kube-master'][0]
+         and inventory_hostname in groups['kube-master']
+         and contiv_enable_api_proxy and contiv_generate_certificate"
+
+- name: Contiv | Copy cni plugins from hyperkube
+  command: "{{ docker_bin_dir }}/docker run --rm -v /opt/cni/bin:/cnibindir {{ hyperkube_image_repo }}:{{ hyperkube_image_tag }} /usr/bin/rsync -ac /opt/cni/bin/ /cnibindir/"
+  register: cni_task_result
+  until: cni_task_result.rc == 0
+  retries: 4
+  delay: "{{ retry_stagger | random + 3 }}"
+  changed_when: false
+  tags: [hyperkube, upgrade]
+
+- name: Contiv | Copy netctl binary from docker container
+  command: sh -c "{{ docker_bin_dir }}/docker rm -f netctl-binarycopy;
+           {{ docker_bin_dir }}/docker create --name netctl-binarycopy {{ contiv_image_repo }}:{{ contiv_image_tag }} &&
+           {{ docker_bin_dir }}/docker cp netctl-binarycopy:/contiv/bin/netctl {{ bin_dir }}/netctl &&
+           {{ docker_bin_dir }}/docker rm -f netctl-binarycopy"
+  register: contiv_task_result
+  until: contiv_task_result.rc == 0
+  retries: 4
+  delay: "{{ retry_stagger | random + 3 }}"
+  changed_when: false

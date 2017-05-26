@@ -28,6 +28,7 @@ calico_policy_version: "v0.5.4"
 weave_version: 2.0.1
 flannel_version: v0.8.0
 pod_infra_version: 3.0
+contiv_version: 1.0.1
 
 # Download URL's
 etcd_download_url: "https://storage.googleapis.com/kargo/{{etcd_version}}_etcd"
@@ -65,6 +66,10 @@ weave_kube_image_repo: "weaveworks/weave-kube"
 weave_kube_image_tag: "{{ weave_version }}"
 weave_npc_image_repo: "weaveworks/weave-npc"
 weave_npc_image_tag: "{{ weave_version }}"
+contiv_image_repo: "contiv/netplugin"
+contiv_image_tag: "{{ contiv_version }}"
+contiv_auth_proxy_image_repo: "contiv/auth_proxy"
+contiv_auth_proxy_image_tag: "{{ contiv_version }}"
 
 nginx_image_repo: nginx
 nginx_image_tag: 1.11.4-alpine
@@ -179,6 +184,18 @@ downloads:
     tag: "{{ weave_npc_image_tag }}"
     sha256: "{{ weave_npc_digest_checksum|default(None) }}"
     enabled: "{{ kube_network_plugin == 'weave' }}"
+  contiv:
+    container: true
+    repo: "{{ contiv_image_repo }}"
+    tag: "{{ contiv_image_tag }}"
+    sha256: "{{ contiv_digest_checksum|default(None) }}"
+    enabled: "{{ kube_network_plugin == 'contiv' }}"
+  contiv_auth_proxy:
+    container: true
+    repo: "{{ contiv_auth_proxy_image_repo }}"
+    tag: "{{ contiv_auth_proxy_image_tag }}"
+    sha256: "{{ contiv_auth_proxy_digest_checksum|default(None) }}"
+    enabled: "{{ kube_network_plugin == 'contiv' }}"
   pod_infra:
     container: true
     repo: "{{ pod_infra_image_repo }}"

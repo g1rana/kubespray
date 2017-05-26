@@ -2,7 +2,7 @@
 dependencies:
   - role: download
     file: "{{ downloads.hyperkube }}"
-    tags: [download, hyperkube, kubelet, network, canal, calico, weave, kube-controller-manager, kube-scheduler, kube-apiserver, kube-proxy, kubectl]
+    tags: [download, hyperkube, kubelet, network, canal, calico, contiv, weave, kube-controller-manager, kube-scheduler, kube-apiserver, kube-proxy, kubectl]
   - role: download
     file: "{{ downloads.pod_infra }}"
     tags: [download, kubelet]

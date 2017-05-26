@@ -58,6 +58,7 @@ Versions of supported components
 [flanneld](https://github.com/coreos/flannel/releases) v0.8.0 <br>
 [calicoctl](https://github.com/projectcalico/calico-docker/releases) v0.23.0 <br>
 [canal](https://github.com/projectcalico/canal) (given calico/flannel versions) <br>
+[contiv](https://github.com/contiv/install/releases) v1.0.1 <br>
 [weave](http://weave.works/) v1.8.2 <br>
 [docker](https://www.docker.com/) v1.13.1 (see note)<br>
 [rkt](https://coreos.com/rkt/docs/latest/) v1.21.0 (see Note 2)<br>
@@ -90,6 +91,9 @@ You can choose between 4 network plugins. (default: `calico`)
 * [**calico**](docs/calico.md): bgp (layer 3) networking.
 
 * [**canal**](https://github.com/projectcalico/canal): a composition of calico and flannel plugins.
+
+* [**contiv**](http://contiv.github.io): supports vlan, vxlan, bgp and Cisco SDN networking. This plugin is able to
+  apply firewall policies, segregate containers in multiple network and bridging pods onto physical networks.
 
 * **weave**: Weave is a lightweight container overlay network that doesn't require an external K/V database cluster. <br>
 (Please refer to `weave` [troubleshooting documentation](http://docs.weave.works/weave/latest_release/troubleshooting.html)).
