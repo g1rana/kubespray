@@ -1,7 +1,7 @@
 contiv_cert_dir: "/etc/contiv/certs"
 contiv_netmaster_port: 9999
 contiv_cni_version: 1.0.1
-contiv_k8s_api_server: "https://{{ hostvars[groups['kube-master'][0]]['ansible_default_ipv4']['address'] }}:6443"
+contiv_k8s_api_server: "https://{{ hostvars[groups['kube-master'][0]]['ansible_default_ipv4']['address'] }}:{{ kube_apiserver_port }}"
 
 # Parameters for Contiv api-proxy
 contiv_enable_api_proxy: true
