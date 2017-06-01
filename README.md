@@ -92,7 +92,7 @@ You can choose between 4 network plugins. (default: `calico`)
 
 * [**canal**](https://github.com/projectcalico/canal): a composition of calico and flannel plugins.
 
-* [**contiv**](http://contiv.github.io): supports vlan, vxlan, bgp and Cisco SDN networking. This plugin is able to
+* [**contiv**](docs/contiv.md): supports vlan, vxlan, bgp and Cisco SDN networking. This plugin is able to
   apply firewall policies, segregate containers in multiple network and bridging pods onto physical networks.
 
 * **weave**: Weave is a lightweight container overlay network that doesn't require an external K/V database cluster. <br>
