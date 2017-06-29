@@ -28,7 +28,7 @@ calico_policy_version: "v0.5.4"
 weave_version: 2.0.1
 flannel_version: v0.8.0
 pod_infra_version: 3.0
-contiv_version: 1.0.1
+contiv_version: 1.0.3
 
 # Download URL's
 etcd_download_url: "https://storage.googleapis.com/kargo/{{etcd_version}}_etcd"
