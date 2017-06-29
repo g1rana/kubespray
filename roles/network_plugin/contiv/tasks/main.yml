@@ -17,67 +17,50 @@
     - {s: "node-{{ inventory_hostname }}.pem", d: "proxy-cert.crt"}
     - {s: "node-{{ inventory_hostname }}-key.pem", d: "proxy-key.pem"}
 
-- name: Contiv | Write contiv-etcd-proxy DaemonSet
-  template:
-    src: contiv-etcd-proxy.yml.j2
-    dest: "{{ kube_config_dir }}/contiv-etcd-proxy.yaml"
-
-- name: Contiv | Write contiv-netplugin DaemonSet
-  template:
-    src: contiv-netplugin.yml.j2
-    dest: "{{ kube_config_dir }}/contiv-netplugin.yaml"
-
-- name: Contiv | Write contiv-netmaster ReplicaSet
-  template:
-    src: contiv-netmaster.yml.j2
-    dest: "{{ kube_config_dir }}/contiv-netmaster.yaml"
-
-- name: Contiv | Write contiv-config ConfigMap
-  template:
-    src: contiv-config.yml.j2
-    dest: "{{ kube_config_dir }}/contiv-config.yaml"
-
-- name: Contiv | Write contiv ClusterRoleBinding
-  template:
-    src: "contiv-{{ item }}-clusterrolebinding.yml.j2"
-    dest: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrolebinding.yaml"
-  with_items:
-    - netmaster
-    - netplugin
-
-- name: Contiv | Write contiv ClusterRole
-  template:
-    src: "contiv-{{ item }}-clusterrole.yml.j2"
-    dest: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrole.yaml"
-  with_items:
-    - netmaster
-    - netplugin
-
-- name: Contiv | Write contiv ServiceAccount
-  template:
-    src: "contiv-{{ item }}-serviceaccount.yml.j2"
-    dest: "{{ kube_config_dir }}/contiv-{{ item }}-serviceaccount.yaml"
-  with_items:
-    - netmaster
-    - netplugin
-
-- name: Contiv | Write contiv-api-proxy DaemonSet
-  template:
-    src: contiv-api-proxy.yml.j2
-    dest: "{{ kube_config_dir }}/contiv-api-proxy.yaml"
-  when: "contiv_enable_api_proxy"
-
 - set_fact:
+    contiv_config_dir: "{{ contiv_config_dir }}"
     contiv_enable_api_proxy: "{{ contiv_enable_api_proxy }}"
     contiv_fabric_mode: "{{ contiv_fabric_mode }}"
     contiv_fwd_mode: "{{ contiv_fwd_mode }}"
     contiv_netmaster_port: "{{ contiv_netmaster_port }}"
     contiv_networks: "{{ contiv_networks }}"
+    contiv_manifests:
+      - {name: contiv-config, file: contiv-config.yml, type: configmap}
+      - {name: contiv-netmaster, file: contiv-netmaster-clusterrolebinding.yml, type: clusterrolebinding}
+      - {name: contiv-netmaster, file: contiv-netmaster-clusterrole.yml, type: clusterrole}
+      - {name: contiv-netmaster, file: contiv-netmaster-serviceaccount.yml, type: serviceaccount}
+      - {name: contiv-netplugin, file: contiv-netplugin-clusterrolebinding.yml, type: clusterrolebinding}
+      - {name: contiv-netplugin, file: contiv-netplugin-clusterrole.yml, type: clusterrole}
+      - {name: contiv-netplugin, file: contiv-netplugin-serviceaccount.yml, type: serviceaccount}
+      - {name: contiv-etcd-proxy, file: contiv-etcd-proxy.yml, type: daemonset}
+      - {name: contiv-netplugin, file: contiv-netplugin.yml, type: daemonset}
+      - {name: contiv-netmaster, file: contiv-netmaster.yml, type: daemonset}
+
+- set_fact:
+    contiv_manifests: |-
+      {% set _ = contiv_manifests.append({"name": "contiv-api-proxy", "file": "contiv-api-proxy.yml", "type": "daemonset"}) %}
+      {{ contiv_manifests }}
+  when: contiv_enable_api_proxy
 
 - name: Contiv | Create /var/contiv
   file:
     path: /var/contiv
     state: directory
+
+- name: Contiv | Create contiv config directory
+  file:
+    dest: "{{ contiv_config_dir }}"
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Contiv | Install all Kubernetes resources
+  template:
+    src: "{{ item.file }}.j2"
+    dest: "{{ contiv_config_dir }}/{{ item.file }}"
+  with_items: "{{ contiv_manifests }}"
+  register: contiv_manifests_results
 
 - name: Contiv | Generate contiv-api-proxy certificates
   script: generate-certificate.sh

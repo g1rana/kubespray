@@ -1,83 +1,11 @@
-- name: Create contiv-config ConfigMap
-  run_once: true
+- name: Contiv | Create Kubernetes resources
   kube:
-    name: "contiv-config"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-config.yaml"
-    resource: "configmap"
+    name: "{{ item.item.name }}"
     namespace: "{{ system_namespace }}"
-
-- name: Create contiv-etcd-proxy DaemonSet
-  run_once: true
-  kube:
-    name: "contiv-etcd-proxy"
     kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-etcd-proxy.yaml"
-    resource: "daemonset"
-    namespace: "{{ system_namespace }}"
-
-- name: Create contiv-netplugin DaemonSet
-  run_once: true
-  kube:
-    name: "contiv-netplugin"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-netplugin.yaml"
-    resource: "daemonset"
-    namespace: "{{ system_namespace }}"
-
-- name: Create contiv-netmaster DaemonSet
-  run_once: true
-  kube:
-    name: "contiv-netmaster"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-netmaster.yaml"
-    resource: "daemonset"
-    namespace: "{{ system_namespace }}"
-
-- name: Create contiv-api-proxy DaemonSet
-  run_once: true
-  kube:
-    name: "contiv-api-proxy"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-api-proxy.yaml"
-    resource: "daemonset"
-    namespace: "{{ system_namespace }}"
-  when: contiv_enable_api_proxy
-
-- name: Create contiv ClusterRoleBinding
-  run_once: true
-  kube:
-    name: "contiv-{{ item }}"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrolebinding.yaml"
-    resource: "clusterrolebinding"
-    namespace: "{{ system_namespace }}"
-  with_items:
-    - netmaster
-    - netplugin
-
-- name: Create contiv ClusterRole
-  run_once: true
-  kube:
-    name: "contiv-{{ item }}"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-{{ item }}-clusterrole.yaml"
-    resource: "clusterrole"
-    namespace: "{{ system_namespace }}"
-  with_items:
-    - netmaster
-    - netplugin
-
-- name: Create contiv ServiceAccount
-  run_once: true
-  kube:
-    name: "contiv-{{ item }}"
-    kubectl: "{{ bin_dir }}/kubectl"
-    filename: "{{ kube_config_dir }}/contiv-{{ item }}-serviceaccount.yaml"
-    resource: "serviceaccount"
-    namespace: "{{ system_namespace }}"
-  with_items:
-    - netmaster
-    - netplugin
+    resource: "{{ item.item.type }}"
+    filename: "{{ contiv_config_dir }}/{{ item.item.name }}.yml"
+    state: "{{ item.changed | ternary('latest','present') }}"
+  with_items: "{{ contiv_manifests_results.results }}"
 
 - include: configure.yml
